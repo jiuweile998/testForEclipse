@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+    http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+    http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd
+    http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd">
+
+
+<!--开启包扫描-->
+    <context:component-scan base-package="all">
+        <context:exclude-filter type="annotation" expression="org.springframework.stereotype.Controller"/>
+    </context:component-scan>
+<!--  数据源，事务控制，xxx-->
+<context:property-placeholder location="claspath:dbconfig.properties"/>
+    <!--配置数据源-->
+    <bean id="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource">
+        <property name="driverClass" value="${jdbc.driverClass}"/>
+        <property name="jdbcUrl" value="${jdbc.jdbcUrl}"/>
+        <property name="user" value="${jdbc.user}"/>
+        <property name="password" value="${jdbc.password}"/>
+    </bean>
+    <!--配置mybatis的整合-->
+    <bean id="factory" class="org.mybatis.spring.SqlSessionFactoryBean">
+       <!--数据源  -->
+        <property name="dataSource" ref="dataSource"/>
+        <!--指定mybatis的全局配置文件 -->
+        <property name="configLocation" value="mybatis-config.xml"></property>
+   <!--指定mybatis的mapper（Dao.xml）文件  -->
+        <property name="mapperLocation" value="classpaht:mapper/*.xml"></property>
+    </bean>
+    <!--配置扫描器，将mybatis接口的实现加入到IOC容器中-->
+<bean id="mapperScanner" class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+    <!-- 扫描所有dao接口的实现，加入到ico容器中 -->
+    <property name="basePackage" value="all.dao"/>
+</bean>
+
+    <!--开启事务管理器-->
+    <bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="dataSource"/>
+    </bean>
+
+
+
+    <!--配置aop-->
+    <aop:config>
+    <!-- 切入点表达式 -->
+        <aop:pointcut  expression="execution(* all.service..*(..))" id="txPomnit"/>
+        <!-- 配置事务增强 -->
+        <aop:advisor advice-ref="txAdvice" pointcut-ref="txPoint"/>
+    </aop:config>    
+    <!--  配置事务增强，事务如何切入-->
+    <tx:advice id="txAdvice" transaction-manager="transactionManager">
+               <tx:attributes>
+                      <!-- 所有方法都是事务方法 -->
+                      <tx:method name="*"/>
+                      <tx:method name="get*" read-only="true"/>
+               </tx:attributes>
+    </tx:advice>
+    
+    
+    <!--spring 配置文件的核心（数据源，与mybatis的整合，事务控制）  -->
+
+</beans>
